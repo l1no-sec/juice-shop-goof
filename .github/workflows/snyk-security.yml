@@ -3,52 +3,39 @@ name: Snyk Security
 on:
   pull_request:
   push:
-    branches:
-      - master
-
-permissions:
-  contents: read
-  security-events: write
+    branches: ["master"]
 
 jobs:
   snyk:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Checkout do código
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      # 2️⃣ Setup Node
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      # 3️⃣ Instala dependências de forma determinística
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
-      # 4️⃣ Snyk Code (SAST)
       - name: Run Snyk Code (SAST)
         run: snyk code test --severity-threshold=high --sarif-file-output=snyk-code.sarif
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
-      # 5️⃣ Upload SAST para GitHub Code Scanning
-      - name: Upload SAST results to GitHub
+      - name: Upload SAST results
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: snyk-code.sarif
 
-      # 6️⃣ Snyk Open Source (SCA) - quebra build se HIGH+
       - name: Run Snyk Open Source (SCA)
         run: snyk test --all-projects --severity-threshold=high
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
-      # 7️⃣ Snapshot para monitoramento contínuo no Snyk
-      - name: Monitor project in Snyk
+      - name: Snyk Monitor
         run: snyk monitor --all-projects
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
